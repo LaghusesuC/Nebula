@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initStoreStatus();
   initButtonRipple();
   initGalleryHover();
+  initFoodOrdering();
 });
 
 /* ══════════════════════════════════════════
@@ -440,3 +441,370 @@ document.querySelectorAll('.svc-card').forEach(card => {
 
 console.log('%c NEBULA 🌌 ', 'background:#c9a84c;color:#0a0a0a;font-size:14px;font-weight:bold;padding:4px 12px;border-radius:4px;');
 console.log('%c Where Flavor Meets Experience · Puliampatti ', 'color:#c9a84c;font-size:11px;');
+
+/* ══════════════════════════════════════════
+   FOOD ORDERING SYSTEM
+   ============================================================ */
+function initFoodOrdering() {
+  let cart = [];
+  
+  // Elements
+  const cartTrigger = document.getElementById('cart-trigger');
+  const cartDrawer = document.getElementById('cart-drawer');
+  const cartClose = document.getElementById('cart-close');
+  const cartBackdrop = document.getElementById('cart-backdrop');
+  const cartCount = document.getElementById('cart-count');
+  const cartItemsContainer = document.getElementById('cart-items');
+  const cartSubtotal = document.getElementById('cart-subtotal');
+  const cartDeliveryCharge = document.getElementById('cart-delivery-charge');
+  const deliveryRow = document.getElementById('delivery-row');
+  const cartTotal = document.getElementById('cart-total');
+  
+  const orderTypeSelect = document.getElementById('order-type');
+  const tableGroup = document.getElementById('table-number-group');
+  const tableInput = document.getElementById('table-num');
+  const deliveryGroup = document.getElementById('delivery-address-group');
+  const deliveryAddressInput = document.getElementById('del-address');
+  
+  const btnPlaceOrder = document.getElementById('btn-place-order');
+  const orderLoader = document.getElementById('order-loader');
+  const loaderStatus = document.getElementById('loader-status');
+  
+  const successModal = document.getElementById('success-modal');
+  const receiptOrderId = document.getElementById('receipt-order-id');
+  const receiptTime = document.getElementById('receipt-time');
+  const receiptItemsList = document.getElementById('receipt-items-list');
+  const receiptOrderType = document.getElementById('receipt-order-type');
+  const receiptCustInfo = document.getElementById('receipt-cust-info');
+  const receiptTotalPaid = document.getElementById('receipt-total-paid');
+  
+  const btnSuccessWa = document.getElementById('btn-success-wa');
+  const btnSuccessClose = document.getElementById('btn-success-close');
+  const checkoutForm = document.getElementById('checkout-form');
+  
+  // Image assets map
+  const dishImages = {
+    biriyani: 'images/dish_biriyani.jpg',
+    grill: 'images/dish_grill_chicken.jpg',
+    shawarma: 'images/dish_shawarma.jpg',
+    mojito: 'images/dish_mojito.jpg'
+  };
+
+  // Load cart from LocalStorage
+  const loadCart = () => {
+    try {
+      const saved = localStorage.getItem('nebula_cart');
+      if (saved) {
+        cart = JSON.parse(saved);
+        updateCartUI();
+      }
+    } catch (e) {
+      console.error('Error loading cart:', e);
+    }
+  };
+
+  // Save cart to LocalStorage
+  const saveCart = () => {
+    localStorage.setItem('nebula_cart', JSON.stringify(cart));
+  };
+
+  // Open Drawer
+  const openDrawer = () => {
+    cartDrawer.classList.add('open');
+    cartDrawer.setAttribute('aria-hidden', 'false');
+  };
+
+  // Close Drawer
+  const closeDrawer = () => {
+    cartDrawer.classList.remove('open');
+    cartDrawer.setAttribute('aria-hidden', 'true');
+  };
+
+  // Add Item to Cart
+  const addToCart = (id, name, price) => {
+    const existing = cart.find(item => item.id === id);
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({
+        id,
+        name,
+        price: parseInt(price),
+        quantity: 1,
+        img: dishImages[id] || ''
+      });
+    }
+    saveCart();
+    updateCartUI();
+    openDrawer();
+  };
+
+  // Quantity updates
+  const changeQuantity = (id, delta) => {
+    const item = cart.find(item => item.id === id);
+    if (!item) return;
+    item.quantity += delta;
+    if (item.quantity <= 0) {
+      cart = cart.filter(i => i.id !== id);
+    }
+    saveCart();
+    updateCartUI();
+  };
+
+  // Remove Item
+  const removeItem = (id) => {
+    cart = cart.filter(item => item.id !== id);
+    saveCart();
+    updateCartUI();
+  };
+
+  // Update Cart UI
+  const updateCartUI = () => {
+    // Total count calculation
+    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+    cartCount.textContent = count;
+    
+    // Toggle trigger visibility
+    if (count > 0) {
+      cartTrigger.classList.add('visible');
+    } else {
+      cartTrigger.classList.remove('visible');
+      closeDrawer();
+    }
+    
+    // Render list
+    if (cart.length === 0) {
+      cartItemsContainer.innerHTML = `
+        <div class="cart-empty-state">
+          <div class="cart-empty-icon">🍳</div>
+          <p>Your cart is empty</p>
+          <span class="cart-empty-sub">Choose from our signature dishes to get started!</span>
+        </div>
+      `;
+      cartSubtotal.textContent = '₹0';
+      cartTotal.textContent = '₹0';
+      return;
+    }
+    
+    let html = '';
+    let subtotal = 0;
+    
+    cart.forEach(item => {
+      const cost = item.price * item.quantity;
+      subtotal += cost;
+      html += `
+        <div class="cart-item" data-id="${item.id}">
+          <img src="${item.img}" alt="${item.name}" class="cart-item-img" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231c1c1c%22/><text y=%2250%25%22 x=%2250%25%22 font-size=%2228%22 text-anchor=%22middle%22 dy=%22.3em%22>🍛</text></svg>'" />
+          <div class="cart-item-info">
+            <h5 class="cart-item-name">${item.name}</h5>
+            <span class="cart-item-price">₹${item.price} × ${item.quantity}</span>
+          </div>
+          <div class="cart-item-controls">
+            <button class="qty-btn" data-action="minus" data-id="${item.id}">-</button>
+            <span class="qty-val">${item.quantity}</span>
+            <button class="qty-btn" data-action="plus" data-id="${item.id}">+</button>
+            <button class="cart-item-remove" data-id="${item.id}">Remove</button>
+          </div>
+        </div>
+      `;
+    });
+    
+    cartItemsContainer.innerHTML = html;
+    cartSubtotal.textContent = `₹${subtotal}`;
+    
+    // Handles Delivery Type calculation
+    const type = orderTypeSelect.value;
+    let total = subtotal;
+    if (type === 'delivery') {
+      deliveryRow.style.display = 'flex';
+      total += 30; // ₹30 delivery fee
+    } else {
+      deliveryRow.style.display = 'none';
+    }
+    cartTotal.textContent = `₹${total}`;
+  };
+
+  // Bind cart item controls click event listener dynamically
+  cartItemsContainer.addEventListener('click', (e) => {
+    const id = e.target.getAttribute('data-id');
+    if (!id) return;
+    
+    if (e.target.classList.contains('qty-btn')) {
+      const action = e.target.getAttribute('data-action');
+      changeQuantity(id, action === 'plus' ? 1 : -1);
+    } else if (e.target.classList.contains('cart-item-remove')) {
+      removeItem(id);
+    }
+  });
+
+  // Attach Order Type changes
+  orderTypeSelect.addEventListener('change', () => {
+    const val = orderTypeSelect.value;
+    if (val === 'dinein') {
+      tableGroup.style.display = 'flex';
+      tableInput.setAttribute('required', 'required');
+      deliveryGroup.style.display = 'none';
+      deliveryAddressInput.removeAttribute('required');
+    } else if (val === 'delivery') {
+      tableGroup.style.display = 'none';
+      tableInput.removeAttribute('required');
+      deliveryGroup.style.display = 'flex';
+      deliveryAddressInput.setAttribute('required', 'required');
+    } else {
+      tableGroup.style.display = 'none';
+      tableInput.removeAttribute('required');
+      deliveryGroup.style.display = 'none';
+      deliveryAddressInput.removeAttribute('required');
+    }
+    updateCartUI();
+  });
+
+  // Bind add-to-cart-btn clicks
+  document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const name = btn.getAttribute('data-name');
+      const price = btn.getAttribute('data-price');
+      addToCart(id, name, price);
+      
+      // Floating visual effect
+      btn.style.transform = 'scale(0.95)';
+      setTimeout(() => btn.style.transform = '', 120);
+    });
+  });
+
+  // Toggle buttons
+  cartTrigger.addEventListener('click', openDrawer);
+  cartClose.addEventListener('click', closeDrawer);
+  cartBackdrop.addEventListener('click', closeDrawer);
+  
+  // Checkout Order Processing Simulator
+  const processCheckout = () => {
+    if (cart.length === 0) return;
+    
+    // Run HTML Form validation
+    if (!checkoutForm.reportValidity()) return;
+    
+    // Open loading overlay
+    closeDrawer();
+    orderLoader.style.display = 'flex';
+    orderLoader.setAttribute('aria-hidden', 'false');
+    
+    const steps = [
+      'Securing your culinary choices...',
+      'Transmitting order to NEBULA Kitchen...',
+      'Preparing your dining receipt...'
+    ];
+    
+    let stepIndex = 0;
+    loaderStatus.textContent = steps[stepIndex];
+    
+    const loaderInterval = setInterval(() => {
+      stepIndex++;
+      if (stepIndex < steps.length) {
+        loaderStatus.textContent = steps[stepIndex];
+      } else {
+        clearInterval(loaderInterval);
+        completeOrder();
+      }
+    }, 850);
+  };
+
+  // Complete Checkout Order
+  const completeOrder = () => {
+    // Generate order stats
+    const orderIdVal = 'NEB-2026-' + Math.floor(1000 + Math.random() * 9000);
+    const date = new Date();
+    const timeVal = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', ' + date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+    
+    // Receipt Details
+    receiptOrderId.textContent = `Order ID: ${orderIdVal}`;
+    receiptTime.textContent = timeVal;
+    
+    // Items
+    let itemsHtml = '';
+    cart.forEach(item => {
+      itemsHtml += `
+        <div class="receipt-item-row">
+          <span>${item.name} × ${item.quantity}</span>
+          <span>₹${item.price * item.quantity}</span>
+        </div>
+      `;
+    });
+    receiptItemsList.innerHTML = itemsHtml;
+    
+    // Details
+    const type = orderTypeSelect.value;
+    const name = document.getElementById('cust-name').value;
+    const phone = document.getElementById('cust-phone').value;
+    
+    let typeLabel = '';
+    if (type === 'dinein') {
+      typeLabel = `Dine-In (Table ${tableInput.value})`;
+    } else if (type === 'takeaway') {
+      typeLabel = 'Takeaway (Pre-Order)';
+    } else {
+      typeLabel = 'Home Delivery';
+    }
+    
+    receiptOrderType.textContent = typeLabel;
+    receiptCustInfo.textContent = `${name} · ${phone}`;
+    
+    // Totals
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = type === 'delivery' ? subtotal + 30 : subtotal;
+    receiptTotalPaid.textContent = `₹${total}`;
+    
+    // Compile WhatsApp Link
+    let waText = `*🌌 NEBULA Restaurant — Order Receipt*\n`;
+    waText += `-------------------------------------------\n`;
+    waText += `*Order ID:* ${orderIdVal}\n`;
+    waText += `*Date:* ${timeVal}\n`;
+    waText += `*Order Type:* ${typeLabel}\n\n`;
+    waText += `*Items Ordered:*\n`;
+    
+    cart.forEach(item => {
+      waText += `- ${item.quantity}x ${item.name} (₹${item.price * item.quantity})\n`;
+    });
+    
+    if (type === 'delivery') {
+      waText += `\n*Subtotal:* ₹${subtotal}\n`;
+      waText += `*Delivery Fee:* ₹30\n`;
+    }
+    waText += `*Total Amount:* ₹${total}\n\n`;
+    waText += `*Customer Details:*\n`;
+    waText += `- Name: ${name}\n`;
+    waText += `- Phone: ${phone}\n`;
+    if (type === 'delivery') {
+      waText += `- Address: ${deliveryAddressInput.value}\n`;
+    }
+    waText += `-------------------------------------------\n`;
+    waText += `Thank you for choosing NEBULA!`;
+    
+    const waUrl = `https://wa.me/918778844002?text=${encodeURIComponent(waText)}`;
+    btnSuccessWa.setAttribute('onclick', `window.open('${waUrl}', '_blank')`);
+    
+    // Hide loader, show Modal
+    orderLoader.style.display = 'none';
+    orderLoader.setAttribute('aria-hidden', 'true');
+    successModal.style.display = 'flex';
+    successModal.setAttribute('aria-hidden', 'false');
+    
+    // Reset Cart array
+    cart = [];
+    saveCart();
+    updateCartUI();
+    checkoutForm.reset();
+  };
+
+  btnPlaceOrder.addEventListener('click', processCheckout);
+
+  btnSuccessClose.addEventListener('click', () => {
+    successModal.style.display = 'none';
+    successModal.setAttribute('aria-hidden', 'true');
+  });
+
+  // Run Immediately on page load
+  loadCart();
+}
+

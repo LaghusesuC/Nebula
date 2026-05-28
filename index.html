@@ -305,8 +305,8 @@
           <h3 class="dish-name">Signature Biriyani</h3>
           <p class="dish-desc">Fragrant basmati rice slow-cooked with hand-ground spices, tender meat, and saffron — a Puliampatti classic.</p>
           <div class="dish-footer">
-            <span class="dish-price">From ₹120</span>
-            <a href="tel:+918778844002" class="dish-order-btn" id="order-biriyani">Order →</a>
+            <span class="dish-price">₹120</span>
+            <button class="dish-order-btn add-to-cart-btn" data-id="biriyani" data-name="Signature Biriyani" data-price="120" id="order-biriyani">Add to Cart +</button>
           </div>
         </div>
       </article>
@@ -321,8 +321,8 @@
           <h3 class="dish-name">Grill Chicken</h3>
           <p class="dish-desc">Perfectly marinated, chargrilled to smoky perfection — our Grill Chicken is what keeps customers coming back.</p>
           <div class="dish-footer">
-            <span class="dish-price">From ₹180</span>
-            <a href="tel:+918778844002" class="dish-order-btn" id="order-grill">Order →</a>
+            <span class="dish-price">₹180</span>
+            <button class="dish-order-btn add-to-cart-btn" data-id="grill" data-name="Grill Chicken" data-price="180" id="order-grill">Add to Cart +</button>
           </div>
         </div>
       </article>
@@ -337,8 +337,8 @@
           <h3 class="dish-name">Classic Shawarma</h3>
           <p class="dish-desc">Spiced chicken wrapped with fresh vegetables, garlic mayo, and house sauces in a warm soft bread.</p>
           <div class="dish-footer">
-            <span class="dish-price">From ₹80</span>
-            <a href="tel:+918778844002" class="dish-order-btn" id="order-shawarma">Order →</a>
+            <span class="dish-price">₹80</span>
+            <button class="dish-order-btn add-to-cart-btn" data-id="shawarma" data-name="Classic Shawarma" data-price="80" id="order-shawarma">Add to Cart +</button>
           </div>
         </div>
       </article>
@@ -353,8 +353,8 @@
           <h3 class="dish-name">Fresh Mojito</h3>
           <p class="dish-desc">Handcrafted with fresh mint, lime, and natural flavors — the perfect refreshing companion to your meal.</p>
           <div class="dish-footer">
-            <span class="dish-price">From ₹60</span>
-            <a href="tel:+918778844002" class="dish-order-btn" id="order-mojito">Order →</a>
+            <span class="dish-price">₹60</span>
+            <button class="dish-order-btn add-to-cart-btn" data-id="mojito" data-name="Fresh Mojito" data-price="60" id="order-mojito">Add to Cart +</button>
           </div>
         </div>
       </article>
@@ -1071,6 +1071,156 @@
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
     Directions
   </a>
+</div>
+
+<!-- ══════════════════════════════════════════
+     FOOD ORDERING SYSTEM INTEGRATION
+     (Shopping Cart, Sliding Drawer, Loader, Modal)
+════════════════════════════════════════════ -->
+
+<!-- Floating Cart Trigger Badge -->
+<div class="floating-cart-trigger" id="cart-trigger" aria-label="Open shopping cart" role="button" tabindex="0">
+  <div class="cart-trigger-icon">🛒</div>
+  <span class="cart-trigger-count" id="cart-count">0</span>
+</div>
+
+<!-- Shopping Cart Drawer -->
+<div class="cart-drawer-overlay" id="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title" aria-hidden="true">
+  <div class="cart-drawer-backdrop" id="cart-backdrop"></div>
+  <div class="cart-drawer-content">
+    <div class="cart-drawer-header">
+      <h3 class="cart-drawer-title" id="cart-title">Your Gourmet Order</h3>
+      <button class="cart-close-btn" id="cart-close" aria-label="Close cart">&times;</button>
+    </div>
+    
+    <div class="cart-drawer-body">
+      <!-- Cart items container -->
+      <div class="cart-items-container" id="cart-items">
+        <!-- Empty state default -->
+        <div class="cart-empty-state">
+          <div class="cart-empty-icon">🍳</div>
+          <p>Your cart is empty</p>
+          <span class="cart-empty-sub">Choose from our signature dishes to get started!</span>
+        </div>
+      </div>
+      
+      <!-- Checkout Form -->
+      <form class="cart-checkout-form" id="checkout-form" onsubmit="return false;">
+        <h4 class="form-section-title">Order Details</h4>
+        
+        <div class="form-group">
+          <label for="order-type">Order Type</label>
+          <div class="select-wrapper">
+            <select id="order-type" name="orderType" required>
+              <option value="dinein">Dine-In (at Table)</option>
+              <option value="takeaway">Takeaway (Pre-Order)</option>
+              <option value="delivery">Home Delivery (Puliampatti)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="cust-name">Your Name</label>
+          <input type="text" id="cust-name" name="name" placeholder="Enter your name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="cust-phone">Mobile Number</label>
+          <input type="tel" id="cust-phone" name="phone" placeholder="Enter 10-digit mobile number" required pattern="[6-9][0-9]{9}" />
+        </div>
+
+        <!-- Dine-in Group -->
+        <div class="form-group" id="table-number-group">
+          <label for="table-num">Table Number</label>
+          <input type="number" id="table-num" name="tableNum" placeholder="Enter table number (e.g. 5)" min="1" max="30" required />
+        </div>
+
+        <!-- Delivery Group -->
+        <div class="form-group" id="delivery-address-group" style="display: none;">
+          <label for="del-address">Delivery Address</label>
+          <textarea id="del-address" name="address" placeholder="Enter complete delivery address in Puliampatti" rows="2"></textarea>
+        </div>
+      </form>
+    </div>
+    
+    <div class="cart-drawer-footer">
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span id="cart-subtotal">₹0</span>
+        </div>
+        <div class="summary-row" id="delivery-row" style="display:none;">
+          <span>Delivery Charge</span>
+          <span id="cart-delivery-charge">₹30</span>
+        </div>
+        <div class="summary-row total-row">
+          <span>Total Amount</span>
+          <span id="cart-total">₹0</span>
+        </div>
+      </div>
+      <button class="btn btn-gold w-full place-order-btn" id="btn-place-order" type="button">
+        Confirm & Place Order →
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Cinematic Order Processing Loader Overlay -->
+<div class="order-loader-overlay" id="order-loader" role="alert" aria-busy="true" aria-hidden="true" style="display: none;">
+  <div class="loader-content">
+    <div class="spinner-gold"></div>
+    <h3 class="loader-title">Processing Gourmet Order</h3>
+    <p class="loader-sub" id="loader-status">Securing your culinary choices...</p>
+  </div>
+</div>
+
+<!-- Order Success Modal -->
+<div class="success-modal-overlay" id="success-modal" role="dialog" aria-modal="true" aria-labelledby="success-title" aria-hidden="true" style="display: none;">
+  <div class="success-backdrop"></div>
+  <div class="success-modal-content">
+    <div class="success-icon-wrap">🎉</div>
+    <h2 class="success-title" id="success-title">Order Confirmed!</h2>
+    <p class="success-subtitle">Your culinary journey has begun. Our kitchen is preparing your dishes.</p>
+    
+    <!-- Receipt summary card -->
+    <div class="receipt-card">
+      <div class="receipt-header">
+        <div>
+          <span class="receipt-tag">NEBULA RESTAURANT</span>
+          <span class="receipt-id" id="receipt-order-id">Order ID: NEB-2026-0000</span>
+        </div>
+        <div class="receipt-date" id="receipt-time">28 May, 12:15 PM</div>
+      </div>
+      
+      <div class="receipt-items" id="receipt-items-list">
+        <!-- Filled dynamically -->
+      </div>
+      
+      <div class="receipt-footer">
+        <div class="receipt-row">
+          <span>Order Type:</span>
+          <strong id="receipt-order-type">Dine-In (Table 5)</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Customer Info:</span>
+          <span id="receipt-cust-info">Rajesh · 9080706050</span>
+        </div>
+        <div class="receipt-row total">
+          <span>Total Amount:</span>
+          <strong id="receipt-total-paid">₹300</strong>
+        </div>
+      </div>
+    </div>
+    
+    <div class="success-actions">
+      <button class="btn btn-whatsapp w-full" id="btn-success-wa" style="justify-content:center;border-radius:999px;">
+        💬 Send Receipt to WhatsApp
+      </button>
+      <button class="btn btn-outline-cream w-full" id="btn-success-close" style="justify-content:center;margin-top:10px;">
+        Done & Browse Menu
+      </button>
+    </div>
+  </div>
 </div>
 
 <script src="app.js"></script>
